@@ -621,14 +621,18 @@ class MiniLangParser:
         return ['for', [var_name, init_val, cond, step], block]
 
     def _default_step(self, var_name, cond):
-        """Generate default step based on condition operator."""
+        """Generate default step based on condition operator.
+        
+        Según la especificación: si no hay paso explícito, debe mostrar
+        su valor como 1 si es incremento o -1 si es decremento.
+        """
         if isinstance(cond, list) and len(cond) >= 3:
             if cond[0] in ('&&', '||'):
-                return [var_name, '++']
+                return [var_name, '=', var_name, '+', '1']
             op = cond[1] if len(cond) > 1 else ''
             if op in ('>', '>='):
-                return [var_name, '--']
-        return [var_name, '++']
+                return [var_name, '=', var_name, '-', '1']
+        return [var_name, '=', var_name, '+', '1']
 
     @staticmethod
     def _normalize_block_parts(raw_list):
