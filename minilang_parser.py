@@ -1,47 +1,43 @@
 # -*- coding: utf-8 -*-
-"""
+r"""
 # CELDA 1: Título
 MINILANG - Analizador Sintáctico con PyParsing
-Autores: Estudiante1, Estudiante2, Estudiante3, Estudiante4
-NRC: 1234
+Autores: Daniel Cruzado, Daniel Gomez, Sebastian Ibañez y Angelo Martinez
+NRC: [COMPLETAR NRC]
 
 # CELDA 2: Gramática Libre de Contexto en LaTeX
 ## Gramática Libre de Contexto (GLC) para MiniLang
 
-```
-Programa     → Sentencia*
-Sentencia    → Declaracion | Asignacion | IfStmt | WhileStmt | ForStmt
-             | PrintStmt | BreakStmt | ContinueStmt | PostfixStmt
-
-Declaracion  → Tipo ID '=' Expr ';'
-Tipo         → 'int' | 'float' | 'string'
-Asignacion   → ID '=' Expr ';'
-PostfixStmt  → ID ('++' | '--') ';'
-
-IfStmt       → 'if' CondGroup Bloque ('else' Bloque)?
-WhileStmt    → 'while' CondGroup Bloque
-ForStmt      → 'for' '(' ForInit ';' Condicion ';' ForPaso? ')' Bloque
-ForInit      → Tipo ID '=' Expr
-ForPaso      → ID '++' | ID '--' | ID '=' Expr
-
-PrintStmt    → 'print' '(' Expr ')' ';'
-BreakStmt    → 'break' ';'
-ContinueStmt → 'continue' ';'
-
-CondGroup    → '(' Condicion ')' | Condicion
-Condicion    → CondOr
-CondOr       → CondAnd ('||' CondAnd)*
-CondAnd      → CondNot ('&&' CondNot)*
-CondNot      → '!' CondRel | CondRel
-CondRel      → Expr OpRel Expr
-OpRel        → '>' | '<' | '>=' | '<=' | '==' | '!='
-
-Bloque       → '{' Sentencia* '}'
-
-Expr         → Term (('+' | '-') Term)*
-Term         → Factor (('*' | '/' | '%') Factor)*
-Factor       → '(' Expr ')' | ENTERO | FLOTANTE | CADENA | ID
-```
+$$
+\begin{aligned}
+\text{Programa}     &\rightarrow \text{Sentencia}^{*} \\
+\text{Sentencia}    &\rightarrow \text{Declaracion} \mid \text{Asignacion} \mid \text{IfStmt} \mid \text{WhileStmt} \mid \text{ForStmt} \\
+                   &\qquad   \mid \text{PrintStmt} \mid \text{BreakStmt} \mid \text{ContinueStmt} \mid \text{PostfixStmt} \\[4pt]
+\text{Declaracion}  &\rightarrow \text{Tipo} \; \text{ID} \; '=' \; \text{Expr} \; ';' \\
+\text{Tipo}        &\rightarrow \text{'int'} \mid \text{'float'} \mid \text{'string'} \\
+\text{Asignacion}  &\rightarrow \text{ID} \; '=' \; \text{Expr} \; ';' \\
+\text{PostfixStmt} &\rightarrow \text{ID} \; ('++' \mid '--') \; ';' \\[4pt]
+\text{IfStmt}      &\rightarrow \text{'if'} \; \text{CondGroup} \; \text{Bloque} \; (\text{'else'} \; \text{Bloque})? \\
+\text{WhileStmt}   &\rightarrow \text{'while'} \; \text{CondGroup} \; \text{Bloque} \\
+\text{ForStmt}     &\rightarrow \text{'for'} \; '(' \; \text{ForInit} \; ';' \; \text{Condicion} \; ';' \; \text{ForPaso}? \; ')' \; \text{Bloque} \\
+\text{ForInit}     &\rightarrow \text{Tipo} \; \text{ID} \; '=' \; \text{Expr} \\
+\text{ForPaso}     &\rightarrow \text{ID} \; '++' \mid \text{ID} \; '--' \mid \text{ID} \; '=' \; \text{Expr} \\[4pt]
+\text{PrintStmt}   &\rightarrow \text{'print'} \; '(' \; \text{Expr} \; ')' \; ';' \\
+\text{BreakStmt}   &\rightarrow \text{'break'} \; ';' \\
+\text{ContinueStmt}&\rightarrow \text{'continue'} \; ';' \\[4pt]
+\text{CondGroup}   &\rightarrow '(' \; \text{Condicion} \; ')' \mid \text{Condicion} \\
+\text{Condicion}   &\rightarrow \text{CondOr} \\
+\text{CondOr}      &\rightarrow \text{CondAnd} \; (\text{'||'} \; \text{CondAnd})^{*} \\
+\text{CondAnd}     &\rightarrow \text{CondNot} \; (\text{'\&\&'} \; \text{CondNot})^{*} \\
+\text{CondNot}     &\rightarrow \text{'!'} \; \text{CondRel} \mid \text{CondRel} \\
+\text{CondRel}     &\rightarrow \text{Expr} \; \text{OpRel} \; \text{Expr} \\
+\text{OpRel}       &\rightarrow \text{'>'} \mid \text{'<'} \mid \text{'>='} \mid \text{'<='} \mid \text{'=='} \mid \text{'!='} \\[4pt]
+\text{Bloque}     &\rightarrow \text{'\{} \;} \text{Sentencia}^{*} \; \text{'\}'} \\[4pt]
+\text{Expr}       &\rightarrow \text{Term} \; (( \text{'+'} \mid \text{'--'} ) \; \text{Term})^{*} \\
+\text{Term}       &\rightarrow \text{Factor} \; (( \text{'*'} \mid \text{'/'} \mid \text{'\%'} ) \; \text{Factor})^{*} \\
+\text{Factor}     &\rightarrow '(' \; \text{Expr} \; ')' \mid \text{ENTERO} \mid \text{FLOTANTE} \mid \text{CADENA} \mid \text{ID}
+\end{aligned}
+$$
 
 # CELDA 3: Manual de uso
 ## Manual de Uso
@@ -56,14 +52,14 @@ de control (if, while, for), impresión (print), y sentencias break/continue.
 from minilang_parser import MiniLangParser
 
 parser = MiniLangParser()
-tree, has_errors = parser.parse(codigo_fuente)
+tree, has_errors = parser.parse_file("archivo.minilang")
 
 if has_errors:
     print("Errores de sintaxis")
 else:
     print("Código Válido")
 
-print("\\nÁrbol de Análisis Sintáctico")
+print("\nÁrbol de Análisis Sintáctico")
 print_tree(tree)
 ```
 
@@ -83,9 +79,15 @@ print_tree(tree)
 
 ### Impresión
 - `print(expr);`
+
+### Instalación de dependencias
+```bash
+pip install pyparsing
+```
 """
 
 import re
+import sys
 from pyparsing import (
     Forward, Group, Suppress, ZeroOrMore, Optional, OneOrMore,
     Keyword, Regex, oneOf, opAssoc, infixNotation,
@@ -897,6 +899,21 @@ class MiniLangParser:
         except ParseException:
             # Fall back to error-recovery parsing
             return self._parse_with_recovery(code)
+
+    def parse_file(self, filepath):
+        """
+        Parse MiniLang code from a file.
+
+        Args:
+            filepath: Path to file containing MiniLang source code.
+
+        Returns:
+            Tuple of (tree, has_errors) where tree is a list of AST nodes
+            and has_errors is True if any syntax errors were found.
+        """
+        with open(filepath, 'r', encoding='utf-8') as f:
+            code = f.read()
+        return self.parse(code)
 
     def _parse_with_recovery(self, code):
         """Parse with error recovery, generating error nodes for bad statements."""
@@ -1740,6 +1757,24 @@ while (x < 20 {
 
 if __name__ == "__main__":
     parser = MiniLangParser()
+
+    # ── Soporte para lectura de archivo ──
+    # Uso: python minilang_parser.py archivo.minilang
+    if len(sys.argv) > 1:
+        filepath = sys.argv[1]
+        print(f"Analizando archivo: {filepath}")
+        print("=" * 60)
+        try:
+            tree, has_errors = parser.parse_file(filepath)
+            if has_errors:
+                print("Errores de sintaxis")
+            else:
+                print("Código Válido")
+            print("\nÁrbol de Análisis Sintáctico")
+            print_tree(tree)
+        except FileNotFoundError:
+            print(f"Error: No se encontró el archivo '{filepath}'")
+        sys.exit(0)
 
     print("=" * 60)
     print("CELDA 5: Programa Correcto")
