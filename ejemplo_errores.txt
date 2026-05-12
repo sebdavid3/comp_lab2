@@ -1,0 +1,49 @@
+// ==========================================
+// ERRORES DEL DOCUMENTO (CÓDIGO 3)
+// ==========================================
+int x = 10;
+int y = 5;
+if (x > ) {
+    for (int i = 0; i < 3 i++) {
+        y = y + i
+    }
+} else {
+    print(y);
+}
+while (x < 20 {
+    x++;
+}
+
+// ==========================================
+// ERRORES DEL DOCUMENTO (CÓDIGO 4)
+// ==========================================
+string nombre = "Juan";
+string estado = "activo";
+if (nombre == "Juan" && estado == "activo") {
+    print(nombre);
+} else {
+    print("inactivo");
+}
+while (nombre != "" || estado == "activo") {
+    nombre = nombre + "!";
+    estado = "activo"
+    print(estado;
+}
+
+// ==========================================
+// TESTS DE ERRORES DE SINTAXIS ADICIONALES
+// ==========================================
+// 1. Falta ; en asignación
+x = 3
+
+// 2. Falta ; en declaración
+int w = 10
+
+// 3. Condición incompleta
+if (x > ) { }
+
+// 4. Falta ) en while
+while (x < 20 { x++; }
+
+// 5. Falta ) en print
+print(x;

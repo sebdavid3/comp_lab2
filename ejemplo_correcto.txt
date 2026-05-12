@@ -1,0 +1,121 @@
+// ==========================================
+// EJEMPLOS DEL DOCUMENTO (CÓDIGO 1 Y 2)
+// ==========================================
+int x = 10;
+float y = 3.14;
+string mensaje = "Hola mundo";
+if (x >= 10) {
+    print(mensaje);
+}
+for (int i = 0; i < 5; i++) {
+    if (i < 3) {
+        print(i);
+    }
+}
+// comentario simple
+/* comentario multilinea */
+while (x < 20) {
+    x++;
+}
+
+int a = 5;
+int b = 10;
+int z = 0;
+if (a < b) {
+    if (b > 5) {
+        print(b);
+    } else {
+        print(a);
+    }
+} else {
+    if (a == 5) {
+        z = a + b;
+    } else {
+        z = 0;
+    }
+}
+while (a < 10) {
+    for (int i = 0; i < 3; i++) {
+        z = z + i;
+    }
+    a++;
+}
+
+// ==========================================
+// EXPRESIONES ARITMÉTICAS
+// ==========================================
+x = 3;
+x = 10 + 5;
+x = 10 - 5;
+x = 10 * 5;
+x = 10 / 5;
+x = 10 % 3;
+x = 10 * 5 + 3;
+x = (10 + 5) * 2;
+z = 2 * x + 9 - 7 * (k + l);
+
+// ==========================================
+// DECLARACIONES
+// ==========================================
+int var1 = 10;
+float var2 = 3.14;
+string s = "Hola";
+int var3 = 5 + 3;
+
+// ==========================================
+// POSTFIX
+// ==========================================
+x++;
+x--;
+
+// ==========================================
+// PRINT, BREAK, CONTINUE
+// ==========================================
+print(x);
+print("hola");
+print('texto');
+break;
+continue;
+
+// ==========================================
+// CONDICIONES Y LÓGICOS
+// ==========================================
+if (x > 3) { y = 1; }
+if x > 3 { y = 2; }
+if (x > 3) { y = 1; } else { y = 2; }
+if x + 1 > 3 { y = x + 2; }
+while (x < 10) { x++; }
+while x < 10 { x++; }
+while x + 3 < 5 { x++; }
+if (!x) { y = 1; }
+if (x > 3 && y < 5) { z = 1; }
+if (x > 3 || y < 5) { z = 1; }
+if (a > 1 && b < 2 || c == 3) { x = 1; }
+if (!x && y > 0) { z = 1; }
+
+// ==========================================
+// FOR (TODAS LAS VARIANTES INCLUYENDO PASOS VACÍOS)
+// ==========================================
+for (int i = 0; i < 5; i++) { x = i; }
+for (int i = 10; i >= 0; i--) { x = i; }
+for (int i = 0; i < 7; ) { x = i; }
+for (int i = 10; i >= 0; ) { x = i; }
+for (int i = 0; i < 7; i=i+2) { x = i; }
+for (int i = 10; i >= 0; i=i-2) { x = i; }
+
+// ==========================================
+// ANIDAMIENTO COMPLEJO Y CASOS BORDE
+// ==========================================
+if (x > 0) { 
+    for (int i = 0; i < 5; i++) { 
+        while (i < 3) { print(i); } 
+    } 
+}
+for (int i = 0; i < 10; i++) { 
+    if (i == 5) { break; } 
+    continue; 
+}
+x = "hello world";
+x = 'hello world';
+if ((x > 3)) { y = 1; }
+if (!(x > 3)) { y = 1; }
