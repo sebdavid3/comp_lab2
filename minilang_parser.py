@@ -52,7 +52,8 @@ de control (if, while, for), impresión (print), y sentencias break/continue.
 from minilang_parser import MiniLangParser
 
 parser = MiniLangParser()
-tree, has_errors = parser.parse_file("archivo.minilang")
+# Se debe pasar la ruta de un archivo de texto con el código fuente
+tree, has_errors = parser.parse("codigo_minilang.txt")
 
 if has_errors:
     print("Errores de sintaxis")
@@ -878,17 +879,20 @@ class MiniLangParser:
 
     # ── Parsing ──
 
-    def parse(self, code):
+    def parse(self, file_path):
         """
-        Parse MiniLang code and return (tree, has_errors).
+        Parse MiniLang code from a file and return (tree, has_errors).
 
         Args:
-            code: String containing MiniLang source code.
+            file_path: Path to the file containing MiniLang source code.
 
         Returns:
             Tuple of (tree, has_errors) where tree is a list of AST nodes
             and has_errors is True if any syntax errors were found.
         """
+        with open(file_path, 'r', encoding='utf-8') as f:
+            code = f.read()
+
         code = self.remove_comments(code)
 
         # Try full grammar parse first

@@ -1,4 +1,6 @@
 import sys
+import tempfile
+import os
 sys.path.insert(0, '.')
 from minilang_parser import MiniLangParser
 
@@ -12,7 +14,15 @@ def check(name, code, expected_tree, expect_valid):
     global passed, failed, total
     total += 1
     parser = MiniLangParser()
-    tree, has_errors = parser.parse(code)
+    
+    with tempfile.NamedTemporaryFile(mode='w+', suffix='.txt', delete=False, encoding='utf-8') as temp_f:
+        temp_f.write(code)
+        temp_path = temp_f.name
+
+    try:
+        tree, has_errors = parser.parse(temp_path)
+    finally:
+        os.remove(temp_path)
 
     if expect_valid and has_errors:
         failed += 1
@@ -37,7 +47,16 @@ def check_error(name, code):
     global passed, failed, total
     total += 1
     parser = MiniLangParser()
-    tree, has_errors = parser.parse(code)
+    
+    with tempfile.NamedTemporaryFile(mode='w+', suffix='.txt', delete=False, encoding='utf-8') as temp_f:
+        temp_f.write(code)
+        temp_path = temp_f.name
+
+    try:
+        tree, has_errors = parser.parse(temp_path)
+    finally:
+        os.remove(temp_path)
+        
     if has_errors:
         passed += 1
     else:
