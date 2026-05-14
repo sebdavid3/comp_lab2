@@ -1,0 +1,56 @@
+Programa correcto — errores de representación
+Línea: resultado = z * 2 — dentro de while > for > if (else del break)
+Variable destino repetida innecesariamente
+resultado no aparece en la expresión derecha z * 2, por tanto NO debe repetirse.
+Tienen:   [resultado, resultado, z, *, 2]
+Correcto: [resultado, z, *, 2]
+Línea: y = z + 3 — dentro del for sin paso (incremento por defecto)
+Variable destino repetida innecesariamente
+y no aparece en z + 3.
+Tienen:   [y, y, z, +, 3]
+Correcto: [y, z, +, 3]
+Línea: y = z + 3 — dentro del for sin paso (decremento por defecto)
+Variable destino repetida innecesariamente
+Tienen:   [y, y, z, +, 3]
+Correcto: [y, z, +, 3]
+Línea: x = i — aparece en múltiples for
+Verificar: x no aparece en la expresión derecha i
+Si están generando [x, x, i] está mal. Debe ser [x, i].
+Incorrecto: [x, x, i]
+Correcto:   [x, i]
+Línea: x = 0 — else del if anidado
+Asignación de literal — no debe repetir destino
+Incorrecto: [x, x, 0]
+Correcto:   [x, 0]
+For sin paso — error de representación del paso implícito
+For sin paso con condición i < 5 (incremento)
+El paso implícito debe ser el literal 1, no una asignación expandida
+El enunciado dice: "si no está debe mostrar su valor como 1 si es incremento". El árbol debe mostrar el número, no la expresión i = i + 1.
+Tienen:   ['for', ['i','0',[i,<,5],[i,=,i,+,1]], [...]]
+Correcto: ['for', ['i','0',[i,<,5], 1],          [...]]
+For sin paso con condición i >= 0 (decremento)
+El paso implícito debe ser el literal -1
+Tienen:   ['for', ['i','10',[i,>=,0],[i,=,i,-,1]], [...]]
+Correcto: ['for', ['i','10',[i,>=,0], -1],          [...]]
+Programa con errores — nodos mal formados
+Error 3: int z = 0 sin punto y coma
+El parser absorbió la línea siguiente en el nodo de error
+Al recuperarse del error en int z = 0, la siguiente línea z = z + 1; desapareció — fue consumida como parte del token erróneo. Debe aparecer como nodo independiente.
+Tienen:   [int, z, '= 0\nz = z + 1']  ← línea siguiente absorbida
+Correcto: ['error', 'declaracion', 'falta punto y coma']
+          [z, z, +, 1]                ← nodo separado y válido
+
+
+
+El widget tiene las 4 pestañas con todo detallado. Aquí va el resumen ejecutivo de lo que deben corregir antes de la sustentación, en orden de impacto:
+Correcciones críticas (afectan puntos directamente):
+
+La regla del profesor aplica a múltiples nodos, no solo al z = x + y del ejemplo. Revisen toda asignación donde el destino no aparece en la expresión derecha: resultado = z * 2, y = z + 3, x = i, x = 0 — en todos esos casos NO debe repetirse la variable destino.
+Los dos for sin paso deben mostrar 1 o -1 como literal, no [i, =, i, +, 1]. Esto es un requerimiento explícito del enunciado y fácil de verificar en la sustentación.
+La declaración int z = 0 sin ; absorbió la línea siguiente en el token de error. El parser necesita recuperarse al próximo ; y continuar desde ahí como nodo separado.
+
+Correcciones de formato (consistencia del árbol):
+
+El else suelto sin if debe reportarse como nodo de error, no parsearse como expresión plana.
+Los nodos que quedaron flotando fuera del for interno (dentro del while con error) — problema de nivel de anidamiento al recuperarse.
+Los errores 16 y 20 (x = x +; y int a =;) no generan ningún nodo en el árbol — deben aparecer como ['error', ...].

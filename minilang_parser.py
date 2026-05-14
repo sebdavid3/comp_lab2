@@ -510,16 +510,23 @@ class MiniLangParser:
                 break
 
         def _collect_block(raw_parts):
-            """Collect spread block parts and normalize."""
+            """Collect spread block parts and normalize.
+            
+            When pyparsing spreads a multi-stmt block, each part is [[stmt]].
+            We must keep that wrapping so the final block is [[[stmt1]], [[stmt2]]].
+            For single-stmt blocks, we still need [[[stmt]]] format.
+            """
             parts = []
             for p in raw_parts:
                 if isinstance(p, ParseResults):
                     p = p.asList()
                 parts.append(p)
             if len(parts) >= 2:
-                return [p[0] if isinstance(p, list) and len(p) == 1 and isinstance(p[0], list) else p
-                        for p in parts]
-            return parts[0] if parts else []
+                return parts  # Keep wrapping intact
+            if parts:
+                # Single part: wrap in extra list to get [[[stmt]]]
+                return [parts[0]]
+            return []
 
         # Then-block: items[2:else_idx] or items[2:]
         then_parts = list(items[2:else_idx]) if else_idx else list(items[2:])
@@ -546,11 +553,11 @@ class MiniLangParser:
                 item = item.asList()
             block_parts.append(item)
         if len(block_parts) >= 2:
-            # Spread: each [[stmt]] → [stmt]
-            block = [p[0] if isinstance(p, list) and len(p) == 1 and isinstance(p[0], list) else p
-                     for p in block_parts]
+            block = block_parts  # Keep wrapping intact
+        elif block_parts:
+            block = [block_parts[0]]  # Wrap single-stmt: [[[stmt]]]
         else:
-            block = block_parts[0] if block_parts else []
+            block = []
         return ['while', cond, block]
 
     def _make_for(self, tokens):
@@ -616,10 +623,11 @@ class MiniLangParser:
                 item = item.asList()
             block_parts.append(item)
         if len(block_parts) >= 2:
-            block = [p[0] if isinstance(p, list) and len(p) == 1 and isinstance(p[0], list) else p
-                     for p in block_parts]
+            block = block_parts  # Keep wrapping intact
+        elif block_parts:
+            block = [block_parts[0]]  # Wrap single-stmt: [[[stmt]]]
         else:
-            block = block_parts[0] if block_parts else []
+            block = []
 
         return ['for', [var_name, init_val, cond, step], block]
 
@@ -630,12 +638,12 @@ class MiniLangParser:
         su valor como 1 si es incremento o -1 si es decremento.
         """
         if isinstance(cond, list) and len(cond) >= 3:
-            if cond[0] in ('&&', '||'):
-                return [var_name, '=', var_name, '+', '1']
-            op = cond[1] if len(cond) > 1 else ''
-            if op in ('>', '>='):
-                return [var_name, '=', var_name, '-', '1']
-        return [var_name, '=', var_name, '+', '1']
+            # Check for relational operators in the condition to infer direction
+            # For conditions like (i < 5), operator is at index 1 or within nested list
+            flat_cond = flatten_parse([cond])
+            if any(op in flat_cond for op in ('>', '>=')):
+                return -1
+        return 1
 
     @staticmethod
     def _normalize_block_parts(raw_list):
@@ -661,9 +669,6 @@ class MiniLangParser:
         """Transform block: list of statements.
 
         Block grammar: Group(LBRACE + ZeroOrMore(Group(stmt)) + RBRACE)
-
-        Expected format: [[stmt1], [stmt2], ...]
-        Each statement wrapped in its own list: [[stmt]]
         """
         items = tokens[0]
         result = []
@@ -672,12 +677,13 @@ class MiniLangParser:
                 if isinstance(item, ParseResults):
                     item_list = item.asList()
                     if item_list:
-                        # Two levels: [[stmt]] — outer list + stmt wrapper
-                        result.append([[item_list]])
+                        # Modified to match the expected [[stmt]] format in blocks
+                        result.append([item_list])
                     else:
-                        result.append([[item_list]])
+                        result.append([item_list])
                 else:
-                    result.append([[item]])
+                    # Single statement already in list format
+                    result.append([item])
         return result
 
     # ── Grammar Construction ───────────────────────────────
@@ -1015,6 +1021,11 @@ class MiniLangParser:
             first_word += text[i]
             i += 1
 
+        # Catch dangling else
+        if first_word == 'else':
+            # Skip 'else' and return error
+            return (['error', 'else', 'else sin if previo'], i)
+
         # Try to match each statement type
         # Order matters: more specific patterns first
 
@@ -1065,6 +1076,21 @@ class MiniLangParser:
         try:
             # Try to recover: find next ';'
             semi = text.find(';')
+            nl_pos = text.find('\n')
+            
+            # Detect if the line ended before finding a semicolon (Bug E1)
+            if nl_pos >= 0 and (semi < 0 or nl_pos < semi):
+                # We reached the end of the line without a semicolon
+                # Try to extract the declaration parts up to newline
+                line_content = text[:nl_pos].strip()
+                parts = line_content.split(None, 2)
+                if len(parts) >= 3:
+                    tipo, id_, val = parts[0], parts[1], parts[2]
+                    # Check for missing initialization value (Error 20)
+                    if val.rstrip().endswith('='):
+                        return (['error', 'declaracion', 'falta valor'], nl_pos)
+                return (['error', 'declaracion', 'falta punto y coma'], nl_pos)
+
             if semi >= 0:
                 # Try to extract what we can
                 parts = text[:semi].split(None, 2)
@@ -1072,7 +1098,25 @@ class MiniLangParser:
                     tipo = parts[0]
                     id_ = parts[1]
                     val = parts[2] if len(parts) > 2 else ''
+                    # Check if val is just '=' with nothing after (e.g. 'int a =')
+                    if val.strip() == '=':
+                        return (['error', 'declaracion', 'falta valor'], semi + 1)
+                    if val.startswith('='):
+                        actual_val = val[1:].strip()
+                        if actual_val:
+                            try:
+                                expr_result = self._expr.parseString(actual_val, parseAll=True)
+                                expr_tokens = flatten_parse([expr_result.asList()])
+                                if len(expr_tokens) == 1:
+                                    return ([tipo, id_, expr_tokens[0]], semi + 1)
+                                return ([tipo, id_] + expr_tokens, semi + 1)
+                            except ParseException:
+                                return (['error', 'declaracion', 'expresion invalida'], semi + 1)
+                        else:
+                            return (['error', 'declaracion', 'falta valor'], semi + 1)
                     return ([tipo, id_, val], semi + 1)
+                elif len(parts) == 2:
+                    return (['error', 'declaracion', 'declaracion incompleta'], semi + 1)
                 return (['error', 'declaracion', 'declaracion incompleta'], semi + 1)
             return (['error', 'declaracion', 'falta punto y coma'], len(text))
         except Exception:
@@ -1108,12 +1152,13 @@ class MiniLangParser:
                     expr_text = text[eq_pos + 1:semi].strip()
                     if expr_text:
                         try:
-                            expr_result = self._expr.parseString(expr_text)
+                            expr_result = self._expr.parseString(expr_text, parseAll=True)
                             expr_tokens = flatten_parse([expr_result.asList()])
                             return ([id_] + expr_tokens, semi + 1)
                         except ParseException:
-                            pass
-                    return ([id_, expr_text] if expr_text else [id_, '?'], semi + 1)
+                            # Expression could not be fully parsed (e.g. 'x +' or '* 3')
+                            return (['error', 'asignacion', 'expresion incompleta'], semi + 1)
+                    return (['error', 'asignacion', 'expresion incompleta'], semi + 1)
                 return (['error', 'asignacion', 'error en asignacion'], semi + 1)
             else:
                 # Check for closing brace
@@ -1162,6 +1207,10 @@ class MiniLangParser:
             consumed = len(text) - len(rest_after_else)
 
             if cond_error:
+                # Check for specific missing relational operator error
+                if isinstance(cond, list) and len(cond) >= 3 and cond[2] == 'operador relacional faltante':
+                    return (['error', 'if', 'operador relacional faltante'], consumed)
+
                 ast_node = ['if', ['error', 'condicion', 'expresion incompleta']]
                 if then_block is not None:
                     ast_node.append(then_block)
@@ -1261,7 +1310,7 @@ class MiniLangParser:
             # Parse condition
             cond, rest_after_cond, cond_error = self._parse_cond_recovery(rest_after_semi1)
 
-            # Expect ';'
+            # Expect ';' after condition
             rest_after_cond = rest_after_cond.lstrip()
             has_for_semi = False
             if rest_after_cond.startswith(';'):
@@ -1269,19 +1318,41 @@ class MiniLangParser:
                 has_for_semi = True
             else:
                 rest_after_semi2 = rest_after_cond
-                if cond_error is None:
-                    # Missing second semicolon - generate condition_for error
-                    cond = ['error', 'condicion_for']
 
-            # Parse step
+            # Determine condition error FIRST — needed before step recovery
+            cond_is_for_error = False
+            if not has_for_semi:
+                cond = ['error', 'condicion_for']
+                cond_is_for_error = True
+            elif cond_error:
+                cond = ['error', 'condicion_for']
+                cond_is_for_error = True
+
+            # Parse step — also try to extract from condition text if step was absorbed
             step, rest_after_step = self._parse_for_step_recovery(rest_after_semi2)
+            
+            # If step is None and we had a condicion_for error, try to extract step
+            # from the raw condition text (e.g. 'i < 3 i++' → step is 'i++')
+            if step is None and cond_is_for_error:
+                import re as _re
+                raw_text_before_paren = rest_after_semi1
+                paren_p = raw_text_before_paren.find(')')
+                if paren_p >= 0:
+                    raw_text_before_paren = raw_text_before_paren[:paren_p]
+                step_match = _re.search(r'([a-zA-Z_]\w*)\s*(\+\+|--)', raw_text_before_paren)
+                if step_match:
+                    step = [step_match.group(1), step_match.group(2)]
 
-            # Skip until ')'
+            # Skip until ')' only if we haven't reached the block yet
             rest_after_step = rest_after_step.lstrip()
-            paren_pos = rest_after_step.find(')')
-            close_paren_found = paren_pos >= 0
-            if close_paren_found:
-                rest_after_paren = rest_after_step[paren_pos + 1:]
+            close_paren_found = False
+            if not rest_after_step.startswith('{'):
+                paren_pos = rest_after_step.find(')')
+                if paren_pos >= 0:
+                    rest_after_paren = rest_after_step[paren_pos + 1:]
+                    close_paren_found = True
+                else:
+                    rest_after_paren = rest_after_step
             else:
                 rest_after_paren = rest_after_step
 
@@ -1296,17 +1367,12 @@ class MiniLangParser:
             var_name = init[1] if init and len(init) > 1 else '?'
             init_val = init[2] if init and len(init) > 2 else ''
 
+            if not close_paren_found:
+                # Missing ')' - Error 8
+                return (['error', 'for', 'falta parentesis de cierre'], consumed)
+
             if step is None:
                 step = self._default_step(var_name, cond)
-
-            if isinstance(cond, list) and len(cond) >= 1 and cond[0] == 'error':
-                pass  # Condition already has error
-            elif not has_for_semi:
-                # Missing ; after condition - flag as error
-                cond = ['error', 'condicion_for']
-            elif cond_error:
-                # Condition had a parse error (e.g. partial parse with garbage)
-                cond = ['error', 'condicion_for']
 
             return (['for', [var_name, init_val, cond, step], block], consumed)
         except Exception:
@@ -1325,6 +1391,10 @@ class MiniLangParser:
             if rest.startswith('('):
                 rest = rest[1:].lstrip()
             else:
+                # Missing '('
+                semi = rest.find(';')
+                if semi >= 0:
+                    return (['error', 'print', 'falta parentesis de apertura'], len(text) - len(rest[semi+1:]))
                 return (['error', 'print', 'falta parentesis de apertura'], len(text))
 
             # Try to parse expression
@@ -1499,6 +1569,11 @@ class MiniLangParser:
             right_cond = self._parse_cond_partial(right) if right else ['error', 'condicion', 'expresion incompleta']
             return ['||', left_cond, right_cond]
 
+        # Check for missing operator in something like 'x 10'
+        parts = text.split()
+        if len(parts) >= 2:
+            return ['error', 'condicion', 'operador relacional faltante']
+
         return ['error', 'condicion', 'expresion incompleta']
 
     def _parse_block_recovery(self, text):
@@ -1546,23 +1621,30 @@ class MiniLangParser:
                 if pos >= len(inner_text):
                     break
                 remaining = inner_text[pos:]
+                
+                # Check for premature block end or top-level keywords that suggest we missed a brace (Bug E4)
+                if remaining.startswith('}'):
+                    break
+                
                 result = self._try_parse_statement(remaining)
                 if result is not None:
                     ast_node, consumed = result
-                    # Wrap each statement in [stmt] to match _make_block format
+                    # Wrap each statement in [stmt]
                     stmts.append([ast_node])
                     pos += consumed
                 else:
-                    # Could not parse - skip to next ';' or '}'
+                    # Could not parse - skip to next ';' or newline to avoid massive absorption
                     has_error = True
                     next_semi = remaining.find(';')
-                    next_brace = remaining.find('}')
-                    if next_semi >= 0 and (next_brace < 0 or next_semi < next_brace):
+                    next_nl = remaining.find('\n')
+                    if next_semi >= 0:
                         pos += next_semi + 1
-                    elif next_brace >= 0:
-                        pos = inner_text.index('}', pos) if '}' in inner_text[pos:] else len(inner_text)
+                    elif next_nl >= 0:
+                        pos += next_nl + 1
                     else:
                         break
+
+        return (stmts, rest, has_error)
 
         return (stmts, rest, has_error)
 
@@ -1688,31 +1770,38 @@ class MiniLangParser:
 
 
 def print_tree(tree, indent=0):
-    """Print AST with indentation for readability."""
+    """Print AST with indentation exactly as expected by requirements."""
     prefix = '  ' * indent
     if isinstance(tree, list):
         if not tree:
             print(prefix + '[]')
             return
+        
+        # Check if it is a simple flat list of tokens
         all_scalar = all(not isinstance(item, list) for item in tree)
         if all_scalar:
             items = []
             for item in tree:
                 if isinstance(item, str):
-                    items.append(repr(item) if ' ' in item else item)
+                    # Quote tokens to match professor's output
+                    items.append(repr(item))
                 else:
                     items.append(str(item))
             print(prefix + '[' + ', '.join(items) + ']')
         else:
             print(prefix + '[')
-            for item in tree:
+            for i, item in enumerate(tree):
                 if isinstance(item, list):
                     print_tree(item, indent + 1)
                 else:
-                    print(prefix + '  ' + (repr(item) if isinstance(item, str) else str(item)) + ',')
+                    # Scalar item in a nested list
+                    val = repr(item) if isinstance(item, str) else str(item)
+                    # Add comma unless it's the last item (optional but looks better)
+                    print(prefix + '  ' + val + (',' if i < len(tree)-1 else ''))
             print(prefix + ']')
     else:
-        print(prefix + str(tree))
+        # Should not happen in a valid AST tree structure but for robustness:
+        print(prefix + (repr(tree) if isinstance(tree, str) else str(tree)))
 
 
 # ────────────────────────────────────────────────────────────

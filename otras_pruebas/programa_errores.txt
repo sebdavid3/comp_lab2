@@ -1,0 +1,111 @@
+// Programa con errores sintácticos - MiniLang
+// Cada sección tiene un tipo de error diferente
+
+int x = 10;
+int y = 5;
+string nombre = "Juan";
+string estado = 'activo';
+
+// --- ERROR 1: Condición incompleta en if (falta expresión derecha) ---
+if (x > ) {
+    x = x + 1;
+}
+
+// --- ERROR 2: if sin llave de apertura ---
+if (x < 20)
+    y = y + 1;
+}
+
+// --- ERROR 3: Asignación sin punto y coma ---
+x = x + 5
+y = y * 2;
+
+// --- ERROR 4: Declaración sin punto y coma ---
+int z = 0
+z = z + 1;
+
+// --- ERROR 5: while sin paréntesis de cierre ---
+while (x < 50 {
+    x++;
+    z = z + x;
+}
+
+// --- ERROR 6: while sin llave de cierre ---
+while (y < 30) {
+    y++;
+    z = z + y;
+
+
+// --- ERROR 7: for sin punto y coma entre condición y paso ---
+for (int i = 0; i < 3 i++) {
+    z = z + i;
+}
+
+// --- ERROR 8: for sin paréntesis de cierre ---
+for (int i = 0; i < 5; i++ {
+    x = i;
+}
+
+// --- ERROR 9: for sin llave de apertura ---
+for (int i = 0; i < 4; i++)
+    z = z + i;
+}
+
+// --- ERROR 10: Condición vacía en while ---
+while () {
+    x++;
+}
+
+// --- ERROR 11: else sin if previo ---
+else {
+    y = y + 1;
+}
+
+// --- ERROR 12: print sin paréntesis de cierre ---
+print(nombre;
+
+// --- ERROR 13: print sin paréntesis de apertura ---
+print nombre);
+
+// --- ERROR 14: Operador relacional faltante en condición ---
+if (x 10) {
+    x = x + 1;
+}
+
+// --- ERROR 15: Condición incompleta en for ---
+for (int i = 0; ; i++) {
+    z = z + i;
+}
+
+// --- ERROR 16: Asignación con operador incompleto ---
+x = x +;
+y = * 3;
+
+// --- ERROR 17: if con condición sin paréntesis ---
+if x > 3 {
+    x = x + 1;
+}
+
+// --- ERROR 18: while con condición sin paréntesis ---
+while x < 20 {
+    x++;
+}
+
+// --- ERROR 19: Anidamiento con múltiples errores ---
+if (nombre == "Juan" && ) {
+    while (z < 10 {
+        for (int k = 0; k < 2 k++) {
+            z = z + k
+        }
+        z++
+    }
+}
+else {
+    print(estado;
+}
+
+// --- ERROR 20: Declaración sin valor de inicialización ---
+int a =;
+float b =;
+
+/* Fin del programa con errores */
