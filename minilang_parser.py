@@ -140,17 +140,22 @@ def remove_comments(code):
                 continue
             result.append(code[i])
         else:
-            result.append(code[i])
-            # Handle escaped characters inside strings
-            if code[i] == '\\':
-                i += 1
-                if i < len(code):
-                    result.append(code[i])
-                i += 1
-                continue
-            if code[i] == string_char:
+            if code[i] == '\n':
                 in_string = False
                 string_char = None
+                result.append(code[i])
+            else:
+                result.append(code[i])
+                # Handle escaped characters inside strings
+                if code[i] == '\\':
+                    i += 1
+                    if i < len(code):
+                        result.append(code[i])
+                    i += 1
+                    continue
+                if code[i] == string_char:
+                    in_string = False
+                    string_char = None
         i += 1
     return ''.join(result), False
 
@@ -957,8 +962,10 @@ class MiniLangParser:
             if pos >= code_len:
                 break
 
-            # Skip isolated closing braces at top level
-            if code[pos] == '}':
+            # Report isolated braces at top level instead of silently skipping
+            if code[pos] in '{}':
+                tree.append(['error', 'syntax', 'llave sin ' + ('cerrar' if code[pos] == '{' else 'abrir')])
+                has_errors = True
                 pos += 1
                 continue
 
@@ -1316,27 +1323,48 @@ class MiniLangParser:
 
             # Expect ';'
             rest_after_init = rest_after_init.lstrip()
+            has_init_semi = False
             if rest_after_init.startswith(';'):
+                has_init_semi = True
                 rest_after_semi1 = rest_after_init[1:].lstrip()
             else:
                 # Missing ';' after init
                 rest_after_semi1 = rest_after_init
 
             # Parse condition
-            cond, rest_after_cond, cond_error = self._parse_cond_recovery(rest_after_semi1)
+            brace_pos = rest_after_semi1.find('{')
+            paren_pos = rest_after_semi1.find(')')
+            limit = min(p for p in (brace_pos, paren_pos, len(rest_after_semi1)) if p >= 0)
+            cond_semi_pos = rest_after_semi1.find(';')
+            
+            if cond_semi_pos >= 0 and cond_semi_pos < limit:
+                has_cond_semi = True
+                cond_text = rest_after_semi1[:cond_semi_pos].strip()
+                rest_after_cond = rest_after_semi1[cond_semi_pos:]
+                try:
+                    from pyparsing import ParseException
+                    cond_result = self._condition.parseString(cond_text, parseAll=True)
+                    cond = cond_result.asList()
+                    if isinstance(cond, list) and len(cond) == 1:
+                        cond = cond[0]
+                    cond_error = False
+                except ParseException:
+                    cond = self._parse_cond_partial(cond_text)
+                    cond_error = True
+            else:
+                has_cond_semi = False
+                cond, rest_after_cond, cond_error = self._parse_cond_recovery(rest_after_semi1)
 
             # Expect ';' after condition
             rest_after_cond = rest_after_cond.lstrip()
-            has_for_semi = False
             if rest_after_cond.startswith(';'):
                 rest_after_semi2 = rest_after_cond[1:].lstrip()
-                has_for_semi = True
             else:
                 rest_after_semi2 = rest_after_cond
 
             # Determine condition error FIRST — needed before step recovery
             cond_is_for_error = False
-            if not has_for_semi:
+            if not has_cond_semi:
                 cond = ['error', 'condicion_for']
                 cond_is_for_error = True
             elif cond_error:
@@ -1381,6 +1409,9 @@ class MiniLangParser:
             # Build for AST node
             var_name = init[1] if init and len(init) > 1 else '?'
             init_val = init[2] if init and len(init) > 2 else ''
+
+            if not has_init_semi or not has_cond_semi:
+                return (['error', 'for', 'falta punto y coma'], consumed)
 
             if not close_paren_found:
                 # Missing ')' - Error 8
@@ -1440,7 +1471,10 @@ class MiniLangParser:
                 rest = rest[1:].lstrip()
             else:
                 # Missing closing paren
-                consumed = len(text) - len(rest)
+                if rest.startswith(';'):
+                    consumed = len(text) - len(rest[1:])
+                else:
+                    consumed = len(text) - len(rest)
                 return (['error', 'print', 'falta parentesis de cierre'], consumed)
 
             # Expect ';'
@@ -1520,12 +1554,10 @@ class MiniLangParser:
                 return (None, text, True)
         else:
             brace_pos = text.find('{')
-            if brace_pos >= 0:
-                cond_text = text[:brace_pos].strip()
-                rest = text[brace_pos:]
-            else:
-                cond_text = text.strip()
-                rest = ''
+            paren_pos = text.find(')')
+            limit = min(p for p in (brace_pos, paren_pos, len(text)) if p >= 0)
+            cond_text = text[:limit].strip()
+            rest = text[limit:]
 
             if not cond_text:
                 return (None, rest, True)
@@ -1619,9 +1651,12 @@ class MiniLangParser:
         if brace_end < 0:
             block_text = text[1:]
             rest = ''
+            has_error = True
+            missing_brace_error = True
         else:
             block_text = text[1:brace_end]
             rest = text[brace_end + 1:]
+            missing_brace_error = False
 
         # Parse statements inside block using the same recovery logic
         # (without creating a recursive MiniLangParser)
@@ -1661,6 +1696,9 @@ class MiniLangParser:
                         pos += next_nl + 1
                     else:
                         break
+                        
+            if missing_brace_error:
+                stmts.append([['error', 'bloque', 'falta llave de cierre']])
 
         return (stmts, rest, has_error)
 
