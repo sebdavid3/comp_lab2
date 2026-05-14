@@ -126,9 +126,17 @@ def remove_comments(code):
             # Check for multi-line comment
             if code[i] == '/' and i + 1 < len(code) and code[i + 1] == '*':
                 i += 2
-                while i + 1 < len(code) and not (code[i] == '*' and code[i + 1] == '/'):
+                closed = False
+                while i + 1 < len(code):
+                    if code[i] == '*' and code[i + 1] == '/':
+                        closed = True
+                        i += 2
+                        break
                     i += 1
-                i += 2
+                if not closed:
+                    # Unclosed comment - keep track of it if we want to report it
+                    # But we also consume it to the end
+                    return ''.join(result), True
                 continue
             result.append(code[i])
         else:
@@ -144,7 +152,7 @@ def remove_comments(code):
                 in_string = False
                 string_char = None
         i += 1
-    return ''.join(result)
+    return ''.join(result), False
 
 
 def flatten_parse(tokens):
@@ -899,16 +907,18 @@ class MiniLangParser:
         with open(file_path, 'r', encoding='utf-8') as f:
             code = f.read()
 
-        code = self.remove_comments(code)
+        code, has_unclosed = self.remove_comments(code)
 
         # Try full grammar parse first
         try:
             result = self.program.parseString(code, parseAll=True)
             tree = result.asList()
-            return (tree, False)
+            if has_unclosed:
+                tree.insert(0, ['error', 'comentario', 'comentario no cerrado'])
+            return (tree, has_unclosed)
         except ParseException:
             # Fall back to error-recovery parsing
-            return self._parse_with_recovery(code)
+            return self._parse_with_recovery(code, has_unclosed)
 
     def parse_file(self, filepath):
         """
@@ -925,10 +935,12 @@ class MiniLangParser:
             code = f.read()
         return self.parse(code)
 
-    def _parse_with_recovery(self, code):
+    def _parse_with_recovery(self, code, has_unclosed=False):
         """Parse with error recovery, generating error nodes for bad statements."""
         tree = []
-        has_errors = False
+        if has_unclosed:
+            tree.append(['error', 'comentario', 'comentario no cerrado'])
+        has_errors = has_unclosed
         pos = 0
         code_len = len(code)
         max_iterations = 10000
@@ -1272,6 +1284,9 @@ class MiniLangParser:
                                      [], block if block else []],
                                     consumed)
 
+            if block_error:
+                return (['error', 'while', 'falta llave de apertura', cond if cond else [], block if block else []], consumed)
+
             if cond is not None and block is not None:
                 return (['while', cond, block], consumed)
             if cond is not None:
@@ -1373,6 +1388,9 @@ class MiniLangParser:
 
             if step is None:
                 step = self._default_step(var_name, cond)
+
+            if block_error:
+                return (['error', 'for', 'falta llave de apertura', [var_name, init_val, cond, step], block], consumed)
 
             return (['for', [var_name, init_val, cond, step], block], consumed)
         except Exception:
