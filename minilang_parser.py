@@ -87,6 +87,7 @@ pip install pyparsing
 ```
 """
 
+import os
 import re
 import sys
 from pyparsing import (
@@ -899,15 +900,21 @@ class MiniLangParser:
 
     def parse(self, code):
         """
-        Parse MiniLang code from a string and return (tree, has_errors).
+        Parse MiniLang code from a string or file and return (tree, has_errors).
 
         Args:
-            code: String containing MiniLang source code.
+            code: String containing MiniLang source code, OR a file path.
+                  If the string is a valid file path, the file is read automatically.
 
         Returns:
             Tuple of (tree, has_errors) where tree is a list of AST nodes
             and has_errors is True if any syntax errors were found.
         """
+        # Auto-detect file path: if it looks like a path and the file exists, read it
+        if isinstance(code, str) and '\n' not in code and os.path.isfile(code):
+            with open(code, 'r', encoding='utf-8') as f:
+                code = f.read()
+
         code, has_unclosed = self.remove_comments(code)
 
         # Try full grammar parse first
