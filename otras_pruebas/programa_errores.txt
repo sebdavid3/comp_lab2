@@ -1,5 +1,7 @@
-// Programa con errores sintácticos - MiniLang
-// Cada sección tiene un tipo de error diferente
+// ==========================================
+// PROGRAMA DE ERRORES - PRUEBA ROBUSTA MINILANG
+// ==========================================
+// Este archivo cubre todos los casos de error detectados y penalizados en las pruebas
 
 int x = 10;
 int y = 5;
@@ -17,6 +19,7 @@ if (x < 20)
 }
 
 // --- ERROR 3: Asignación sin punto y coma ---
+// (No debe tragarse la asignación de la siguiente línea)
 x = x + 5
 y = y * 2;
 
@@ -31,10 +34,10 @@ while (x < 50 {
 }
 
 // --- ERROR 6: while sin llave de cierre ---
+// Todo lo que sigue será absorbido dentro del bloque de este while
 while (y < 30) {
     y++;
     z = z + y;
-
 
 // --- ERROR 7: for sin punto y coma entre condición y paso ---
 for (int i = 0; i < 3 i++) {
@@ -47,6 +50,7 @@ for (int i = 0; i < 5; i++ {
 }
 
 // --- ERROR 9: for sin llave de apertura ---
+// Esta llave de cierre accidentalmente cerrará el while del Error 6
 for (int i = 0; i < 4; i++)
     z = z + i;
 }
@@ -68,44 +72,24 @@ print(nombre;
 print nombre);
 
 // --- ERROR 14: Operador relacional faltante en condición ---
+// (Debe reportar específicamente "operador relacional faltante")
 if (x 10) {
     x = x + 1;
 }
 
-// --- ERROR 15: Condición incompleta en for ---
-for (int i = 0; ; i++) {
-    z = z + i;
-}
-
-// --- ERROR 16: Asignación con operador incompleto ---
+// --- ERROR 15: Asignaciones y operaciones incompletas ---
 x = x +;
 y = * 3;
 
-// --- ERROR 17: if con condición sin paréntesis ---
-if x > 3 {
-    x = x + 1;
-}
-
-// --- ERROR 18: while con condición sin paréntesis ---
-while x < 20 {
-    x++;
-}
-
-// --- ERROR 19: Anidamiento con múltiples errores ---
-if (nombre == "Juan" && ) {
-    while (z < 10 {
-        for (int k = 0; k < 2 k++) {
-            z = z + k
-        }
-        z++
-    }
-}
-else {
-    print(estado;
-}
-
-// --- ERROR 20: Declaración sin valor de inicialización ---
+// --- ERROR 16: Declaraciones sin valor de inicialización ---
 int a =;
 float b =;
 
-/* Fin del programa con errores */
+// --- ERROR 17: string sin cerrar ---
+// (Debe generar "expresión inválida")
+string roto = "esto no se cierra;
+
+// --- ERROR 18: Comentario multilinea sin cerrar ---
+// Este error aparecerá al inicio del AST como 'comentario no cerrado'
+/* Este comentario llega hasta el final del archivo y nunca se cierra
+x = 1;

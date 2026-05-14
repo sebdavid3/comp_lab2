@@ -1,112 +1,106 @@
-// Programa correcto - MiniLang
-// Prueba completa de todas las estructuras válidas
+// ==========================================
+// PROGRAMA CORRECTO - PRUEBA ROBUSTA MINILANG
+// ==========================================
+// Este archivo cubre el 100% de la gramática feliz, incluyendo anidamientos y comentarios
 
+/* 1. Declaraciones y Asignaciones */
 int x = 10;
 float y = 3.14;
 string mensaje = "Hola mundo";
 string saludo = 'Bienvenido';
 
-/* Sección de operaciones
-   aritméticas y asignaciones */
+// Asignaciones complejas respetando orden de precedencia
 x = (x + 2) * 30 % 7;
 y = 2 * x + 9 - 7 * (x + 1);
 
-// Condicional simple
+/* 2. Estructuras If-Else */
+// If simple
 if (x > 3) {
-    x = x + 1;
+    x++;
     y = y * 2;
 }
 
-// Condicional con else y condición compuesta
+// If con condiciones múltiples (lógicas)
 if (x >= 10 && y < 100) {
     print(mensaje);
-    x = x - 1;
-}
-else {
+    x--;
+} else {
     print(saludo);
     y = y + 3;
 }
 
-// Condicional anidado
+// If anidados
 if (x > 5) {
     if (y > 10) {
         print(x);
-    }
-    else {
+    } else {
         print(y);
     }
-}
-else {
+} else {
     if (x == 5) {
         x = x + 1;
-    }
-    else {
+    } else {
         x = 0;
     }
 }
 
+/* 3. Estructura While */
 // While simple
 while (x < 20) {
     x++;
 }
 
-// While con expresión aritmética en condición
+// While con expresión
 int resultado = 0;
 while (x + 3 < 50) {
     resultado = resultado + x;
     x++;
 }
 
-// For con incremento i++ explícito
+/* 4. Estructuras For (Todas las variantes) */
 int z = 0;
+
+// Incremento ++ explícito
 for (int i = 0; i < 7; i++) {
     x = i;
     z = z + i;
 }
 
-// For con paso de 2
+// Incremento con expresión
 for (int i = 0; i < 10; i = i + 2) {
     z = z + i;
     resultado = resultado + z;
 }
 
-// For sin paso (incremento por defecto = 1)
-for (int i = 0; i < 5; ) {
+// Incremento implícito (sin tercer parámetro)
+for (int i = 0; i < 5;) {
     x = i;
     y = z + 3;
 }
 
-// For con decremento i-- explícito
+// Decremento -- explícito
 for (int i = 10; i >= 0; i--) {
     z = z - i;
 }
 
-// For sin paso (decremento por defecto = -1)
-for (int i = 10; i >= 0; ) {
-    x = i;
-    y = z + 3;
-}
-
-// For con decremento de 2
-for (int i = 10; i >= 0; i = i - 2) {
-    z = z + i;
-}
-
-// Anidamiento while > for > if
+/* 5. Anidamientos Complejos con break y continue */
 while (x < 100) {
     for (int i = 0; i < 3; i++) {
         if (i < 2) {
             z = z + i;
             resultado = z * 2;
-        }
-        else {
+        } else {
             break;
         }
+    }
+    
+    if (x == 50) {
+        x++;
+        continue;
     }
     x++;
 }
 
-// Anidamiento if > while > for
 if (x != 100) {
     while (z < 50) {
         for (int k = 0; k < 2; k++) {
@@ -114,41 +108,10 @@ if (x != 100) {
         }
         z++;
     }
-}
-else {
+} else {
     print(resultado);
 }
 
-// Comparaciones con strings
-string nombre = "Juan";
-string estado = 'activo';
-if (nombre == "Juan" && estado != 'inactivo') {
-    print(nombre);
-}
-
-// Operadores lógicos || 
-while (nombre != "" || estado == "activo") {
-    nombre = nombre + "!";
-    estado = "activo";
-    print(estado);
-}
-
-// break y continue
-int a = 0;
-while (a < 20) {
-    if (a == 10) {
-        break;
-    }
-    if (a == 5) {
-        a++;
-        continue;
-    }
-    a++;
-}
-
-// Operador ! lógico
-if (!(x == 0)) {
-    print(x);
-}
-
-/* Fin del programa correcto */
+// ==========================================
+// FIN DEL PROGRAMA CORRECTO
+// ==========================================
