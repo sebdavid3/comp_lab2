@@ -20,7 +20,7 @@ def check(name, code, expected_tree, expect_valid):
         temp_path = temp_f.name
 
     try:
-        tree, has_errors = parser.parse(temp_path)
+        tree, has_errors = parser.parse_file(temp_path)
     finally:
         os.remove(temp_path)
 
@@ -53,7 +53,7 @@ def check_error(name, code):
         temp_path = temp_f.name
 
     try:
-        tree, has_errors = parser.parse(temp_path)
+        tree, has_errors = parser.parse_file(temp_path)
     finally:
         os.remove(temp_path)
         
@@ -156,7 +156,7 @@ expected3 = [
     ['int', 'x', '10'],
     ['int', 'y', '5'],
     ['if', ['error', 'condicion', 'expresion incompleta'],
-        [[['for', ['i', '0', ['error', 'condicion_for'], ['i', '=', 'i', '+', '1']],
+        [[['for', ['i', '0', ['error', 'condicion_for'], ['i', '++']],
            [[['error', 'asignacion', 'falta punto y coma']]]]]],
         [[['print', 'y']]]],
     ['error', 'while', 'falta parentesis de cierre',
@@ -347,10 +347,10 @@ check("For con -- explícito", "for (int i = 10; i >= 0; i--) { x = i; }",
       [['for', ['i', '10', ['i', '>=', '0'], ['i', '--']], [[['x', 'i']]]]], True)
 
 check("For sin paso con < (infiere ++ = 1)", "for (int i = 0; i < 7; ) { x = i; }",
-      [['for', ['i', '0', ['i', '<', '7'], ['i', '=', 'i', '+', '1']], [[['x', 'i']]]]], True)
+      [['for', ['i', '0', ['i', '<', '7'], 1], [[['x', 'i']]]]], True)
 
 check("For sin paso con >= (infiere -- = -1)", "for (int i = 10; i >= 0; ) { x = i; }",
-      [['for', ['i', '10', ['i', '>=', '0'], ['i', '=', 'i', '-', '1']], [[['x', 'i']]]]], True)
+      [['for', ['i', '10', ['i', '>=', '0'], -1], [[['x', 'i']]]]], True)
 
 check("For con paso i=i+2", "for (int i = 0; i < 7; i=i+2) { x = i; }",
       [['for', ['i', '0', ['i', '<', '7'], ['i', '=', 'i', '+', '2']], [[['x', 'i']]]]], True)

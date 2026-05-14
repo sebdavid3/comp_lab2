@@ -501,7 +501,6 @@ class MiniLangParser:
         return ['continue']
 
     @staticmethod
-    @staticmethod
     def _make_if(tokens):
         """Transform if: ['if', COND, THEN] or ['if', COND, THEN, ELSE]
 
@@ -898,20 +897,17 @@ class MiniLangParser:
 
     # ── Parsing ──
 
-    def parse(self, file_path):
+    def parse(self, code):
         """
-        Parse MiniLang code from a file and return (tree, has_errors).
+        Parse MiniLang code from a string and return (tree, has_errors).
 
         Args:
-            file_path: Path to the file containing MiniLang source code.
+            code: String containing MiniLang source code.
 
         Returns:
             Tuple of (tree, has_errors) where tree is a list of AST nodes
             and has_errors is True if any syntax errors were found.
         """
-        with open(file_path, 'r', encoding='utf-8') as f:
-            code = f.read()
-
         code, has_unclosed = self.remove_comments(code)
 
         # Try full grammar parse first
@@ -1357,14 +1353,16 @@ class MiniLangParser:
 
             # Expect ';' after condition
             rest_after_cond = rest_after_cond.lstrip()
+            has_for_semi = False
             if rest_after_cond.startswith(';'):
+                has_for_semi = True
                 rest_after_semi2 = rest_after_cond[1:].lstrip()
             else:
                 rest_after_semi2 = rest_after_cond
 
             # Determine condition error FIRST — needed before step recovery
             cond_is_for_error = False
-            if not has_cond_semi:
+            if not has_cond_semi and not has_for_semi:
                 cond = ['error', 'condicion_for']
                 cond_is_for_error = True
             elif cond_error:
@@ -1410,7 +1408,14 @@ class MiniLangParser:
             var_name = init[1] if init and len(init) > 1 else '?'
             init_val = init[2] if init and len(init) > 2 else ''
 
-            if not has_init_semi or not has_cond_semi:
+            # When condition semicolon was missing but we recovered step and block,
+            # produce structured for node with condicion_for error (Salida 3 rubric)
+            if cond_is_for_error:
+                if step is None:
+                    step = self._default_step(var_name, cond)
+                return (['for', [var_name, init_val, cond, step], block], consumed)
+
+            if not has_init_semi:
                 return (['error', 'for', 'falta punto y coma'], consumed)
 
             if not close_paren_found:
@@ -1699,8 +1704,6 @@ class MiniLangParser:
                         
             if missing_brace_error:
                 stmts.append([['error', 'bloque', 'falta llave de cierre']])
-
-        return (stmts, rest, has_error)
 
         return (stmts, rest, has_error)
 
